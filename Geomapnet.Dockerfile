@@ -1,4 +1,4 @@
-FROM geomapnet:latest
+FROM geomapnetbase:latest
 
 RUN apt-get install -y zsh
 RUN apt-get install -y curl
