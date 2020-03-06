@@ -2,8 +2,10 @@
 Copyright (C) 2018 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
+import json
  
-import set_paths
+from tqdm import tqdm
+from dataset_loaders import utils as data_utils
 from models.posenet import PoseNet, MapNet
 from common.train import load_state_dict, step_feedfwd
 from common.pose_utils import optimize_poses, quaternion_angular_error, qexp,\
@@ -40,6 +42,8 @@ parser.add_argument('--model', choices=('posenet', 'mapnet', 'mapnet++'),
 parser.add_argument('--device', type=str, default='0', help='GPU device(s)')
 parser.add_argument('--config_file', type=str, help='configuration file')
 parser.add_argument('--val', action='store_true', help='Plot graph for val')
+parser.add_argument('--import_file', help='json file')
+parser.add_argument('--export_file', help='json file')
 parser.add_argument('--output_dir', type=str, default=None,
   help='Output image directory')
 parser.add_argument('--pose_graph', action='store_true',
@@ -149,6 +153,21 @@ if CUDA:
 
 pred_poses = np.zeros((L, 7))  # store all predicted poses
 targ_poses = np.zeros((L, 7))  # store all target poses
+
+with open(args.import_file) as f:
+  features_file = json.load(f)
+
+results = {}
+for uid, path in tqdm(features_file.items()):
+  # import pdb; pdb.set_trace()
+  image_filename = osp.join(data_dir, path)
+  image = data_utils.load_image(image_filename)
+  image_transformed = data_set.transform(image)
+  features = model.feature_extractor(image_transformed.unsqueeze(0))
+  results[uid] = features.detach().numpy()
+
+np.save(args.export_file, results)
+exit(0)
 
 # inference loop
 for batch_idx, (data, target) in enumerate(loader):
